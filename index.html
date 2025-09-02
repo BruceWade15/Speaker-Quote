@@ -1,4 +1,14 @@
-<!DOCTYPE html>
+        .api-config button:hover {
+            background: #b7791f;
+        }
+
+        .clear-btn {
+            background: #6b7280;
+        }
+
+        .clear-btn:hover {
+            background: #4b5563;
+        }<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -370,10 +380,30 @@
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
+            margin-right: 10px;
+            margin-bottom: 10px;
         }
 
-        .api-config button:hover {
-            background: #b7791f;
+        .reset-btn {
+            background: #dc2626;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .reset-btn:hover {
+            background: #b91c1c;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(220, 38, 38, 0.4);
         }
 
         /* Mobile Responsiveness */
@@ -435,6 +465,9 @@
 </head>
 <body>
     <div class="container">
+        <!-- Reset Button -->
+        <button class="reset-btn" onclick="resetApiKey()" title="Reset API Key">🔄 Reset API Key</button>
+
         <header class="header">
             <img src="https://brucewade.co.za/wp-content/uploads/2023/08/Logo100.png" alt="Logo" class="logo">
             <h1>Speaker Quote Finder</h1>
@@ -448,6 +481,7 @@
             <p style="margin-bottom: 15px; color: #744210;">Enter your Anthropic API key to get started:</p>
             <input type="password" id="apiKeyInput" placeholder="Enter your Anthropic API key (sk-ant-...)">
             <button onclick="saveApiKey()">Save API Key</button>
+            <button class="clear-btn" onclick="clearApiKeyInput()">Clear</button>
             <p style="margin-top: 10px; font-size: 0.9rem; color: #744210;">
                 Get your API key from <a href="https://console.anthropic.com/" target="_blank" style="color: #d69e2e;">console.anthropic.com</a>
             </p>
@@ -572,10 +606,37 @@
                 ANTHROPIC_API_KEY = apiKey;
                 localStorage.setItem('anthropic_api_key', apiKey);
                 document.getElementById('apiConfig').style.display = 'none';
-                showMessage('API key saved successfully!', 'success');
+                showMessage('API key saved successfully! You can now generate quotes.', 'success');
             } else {
                 showError('Please enter a valid Anthropic API key (starts with sk-ant-)');
             }
+        }
+
+        function resetApiKey() {
+            // Clear the stored API key
+            ANTHROPIC_API_KEY = '';
+            localStorage.removeItem('anthropic_api_key');
+            
+            // Clear the input field
+            document.getElementById('apiKeyInput').value = '';
+            
+            // Show the API config section
+            document.getElementById('apiConfig').style.display = 'block';
+            
+            // Clear any results
+            document.getElementById('resultsContainer').style.display = 'none';
+            
+            // Reset the form
+            document.getElementById('quoteForm').reset();
+            
+            showMessage('API key reset! Please enter your API key again.', 'success');
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function clearApiKeyInput() {
+            document.getElementById('apiKeyInput').value = '';
         }
 
         document.getElementById('quoteForm').addEventListener('submit', function(e) {
