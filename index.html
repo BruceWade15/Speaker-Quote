@@ -650,6 +650,11 @@
                 return;
             }
 
+            console.log('=== DEBUGGING INFO ===');
+            console.log('API Key exists:', !!ANTHROPIC_API_KEY);
+            console.log('API Key format:', ANTHROPIC_API_KEY.substring(0, 10) + '...');
+            console.log('API URL:', ANTHROPIC_API_URL);
+
             const formData = new FormData(document.getElementById('quoteForm'));
             const searchParams = {
                 speaker: formData.get('speaker'),
@@ -661,6 +666,8 @@
                 length: formData.get('length'),
                 context: formData.get('context')
             };
+
+            console.log('Search parameters:', searchParams);
 
             // Show results container and loading
             document.getElementById('resultsContainer').style.display = 'block';
@@ -680,8 +687,27 @@
                 const quotes = await getQuotesFromClaude(searchParams);
                 displayQuotes(quotes, searchParams);
             } catch (error) {
-                console.error('Search error:', error);
-                showError('An error occurred while searching for quotes. Please check your API key and try again.');
+                console.error('=== DETAILED ERROR INFO ===');
+                console.error('Error type:', error.name);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+                
+                // Show more specific error messages
+                let userMessage = 'An error occurred while searching for quotes. ';
+                
+                if (error.message.includes('401')) {
+                    userMessage += 'Invalid API key. Please check your key and try again.';
+                } else if (error.message.includes('429')) {
+                    userMessage += 'Rate limit exceeded. Please wait a moment and try again.';
+                } else if (error.message.includes('CORS')) {
+                    userMessage += 'Browser security restrictions. Try using a different browser or disable extensions.';
+                } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                    userMessage += 'Network connection issue. Check your internet connection.';
+                } else {
+                    userMessage += `Specific error: ${error.message}`;
+                }
+                
+                showError(userMessage);
             } finally {
                 document.getElementById('loadingDiv').style.display = 'none';
                 searchBtn.disabled = false;
@@ -703,9 +729,12 @@
                 ]
             };
 
-            console.log('Sending request to Claude API...');
+            console.log('=== API REQUEST INFO ===');
+            console.log('Request URL:', ANTHROPIC_API_URL);
+            console.log('Request body:', JSON.stringify(requestBody, null, 2));
             
             try {
+                console.log('Making fetch request...');
                 const response = await fetch(ANTHROPIC_API_URL, {
                     method: 'POST',
                     headers: {
@@ -716,29 +745,46 @@
                     body: JSON.stringify(requestBody)
                 });
 
+                console.log('=== API RESPONSE INFO ===');
                 console.log('Response status:', response.status);
+                console.log('Response statusText:', response.statusText);
+                console.log('Response ok:', response.ok);
 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error('Claude API Error Response:', errorText);
+                    console.error('Error response text:', errorText);
                     
                     let errorData;
                     try {
                         errorData = JSON.parse(errorText);
+                        console.error('Parsed error data:', errorData);
                     } catch (e) {
+                        console.error('Could not parse error as JSON:', e);
                         errorData = { error: { message: errorText } };
                     }
                     
-                    throw new Error(`API Error: ${response.status} - ${errorData.error?.message || errorText}`);
+                    throw new Error(`API Error ${response.status}: ${errorData.error?.message || errorText}`);
                 }
 
                 const data = await response.json();
-                console.log('Claude API Success Response:', data);
+                console.log('=== SUCCESS RESPONSE ===');
+                console.log('Response data:', data);
+                
+                if (!data.content || !data.content[0] || !data.content[0].text) {
+                    throw new Error('Invalid response structure from Claude API');
+                }
                 
                 return parseClaudeResponse(data.content[0].text);
                 
             } catch (error) {
-                console.error('Network or parsing error:', error);
+                console.error('=== FETCH ERROR ===');
+                console.error('Error name:', error.name);
+                console.error('Error message:', error.message);
+                
+                if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                    throw new Error('Network error: Unable to connect to Claude API. Check your internet connection or try again.');
+                }
+                
                 throw error;
             }
         }
