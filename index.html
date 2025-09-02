@@ -644,26 +644,42 @@
 
             console.log('Sending request to Claude API...');
             
-            const response = await fetch(ANTHROPIC_API_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': ANTHROPIC_API_KEY,
-                    'anthropic-version': '2023-06-01'
-                },
-                body: JSON.stringify(requestBody)
-            });
+            try {
+                const response = await fetch(ANTHROPIC_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': ANTHROPIC_API_KEY,
+                        'anthropic-version': '2023-06-01'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error('Claude API Error:', errorData);
-                throw new Error(`API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+                console.log('Response status:', response.status);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Claude API Error Response:', errorText);
+                    
+                    let errorData;
+                    try {
+                        errorData = JSON.parse(errorText);
+                    } catch (e) {
+                        errorData = { error: { message: errorText } };
+                    }
+                    
+                    throw new Error(`API Error: ${response.status} - ${errorData.error?.message || errorText}`);
+                }
+
+                const data = await response.json();
+                console.log('Claude API Success Response:', data);
+                
+                return parseClaudeResponse(data.content[0].text);
+                
+            } catch (error) {
+                console.error('Network or parsing error:', error);
+                throw error;
             }
-
-            const data = await response.json();
-            console.log('Claude API Response:', data);
-            
-            return parseClaudeResponse(data.content[0].text);
         }
 
         function createClaudePrompt(params) {
